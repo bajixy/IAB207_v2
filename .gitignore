@@ -1,8 +1,17 @@
+# Python / venv
 venv/
 __pycache__/
-instance/
 *.pyc
 *.pyo
+
+# Local instance data (don’t track dev DBs here)
+instance/
+
+# DB + secrets (global ignores) …
 *.sqlite
 *.db
 .env
+
+# …except: allow the packaged demo DB inside any website/_data/ folder
+!website/**/_data/
+!website/**/_data/app.db
