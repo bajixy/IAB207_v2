@@ -1,42 +1,157 @@
 {% extends "base.html" %}
-{% block title %}Home · EventApp{% endblock %}
+{% block title %}Home · Open Decks{% endblock %}
 
 {% block content %}
-  <div class="p-5 mb-4 bg-light rounded-3">
-    <div class="container py-5">
-      <h1 class="display-5 fw-bold">Welcome to EventApp</h1>
-      {% if current_user.is_authenticated %}
-        <p class="col-lg-8 fs-5 mt-3">Hi {{ current_user.name }}, you’re logged in. Head to your Dashboard to continue.</p>
-        <a class="btn btn-primary btn-lg mt-2" href="{{ url_for('routes.dashboard') }}">Go to Dashboard</a>
-      {% else %}
-        <p class="col-lg-8 fs-5 mt-3">Browse events (coming soon), or create an account to book tickets and post comments.</p>
-        <a class="btn btn-primary btn-lg mt-2 me-2" href="{{ url_for('routes.register') }}">Create an account</a>
-        <a class="btn btn-outline-secondary btn-lg mt-2" href="{{ url_for('routes.login') }}">I already have an account</a>
-      {% endif %}
-    </div>
-  </div>
+<!-- Hero -->
+<div class="myjumbo bg-dark text-white py-5 mb-4 rounded-3">
+  <div class="container">
+    <h1 class="display-5 fw-bold">Open Decks</h1>
+    {% if current_user.is_authenticated %}
+      <p class="col-lg-8 fs-5 mt-3">
+        Hi {{ current_user.name }}, welcome back! Discover community gigs, sign up for a performance slot, or host your own open deck.
+      </p>
+      <a class="btn btn-primary btn-lg mt-2 me-2" href="{{ url_for('routes.booking_history') }}">My tickets</a>
+      <a class="btn btn-outline-light btn-lg mt-2 me-2" href="{{ url_for('routes.create_event') }}">Create open deck</a>
 
-  <h2 class="h4 mb-3">Upcoming Events</h2>
-  <div class="row g-3">
+      {% set myperf = safe_url_for('routes.my_performances') %}
+      {% if myperf %}
+        <a class="btn btn-outline-light btn-lg mt-2" href="{{ myperf }}">My performances</a>
+      {% endif %}
+
+    {% else %}
+      <p class="col-lg-8 fs-5 mt-3">
+        Discover local DJ nights, indie gigs, and jam sessions. Create an account to book tickets, comment, and sign up to perform.
+      </p>
+      <a class="btn btn-primary btn-lg mt-2 me-2" href="{{ url_for('routes.register') }}">Create an account</a>
+      <a class="btn btn-outline-light btn-lg mt-2" href="{{ url_for('routes.login') }}">I already have an account</a>
+    {% endif %}
+  </div>
+</div>
+
+
+  <!-- Filters -->
+  <form class="row g-2 align-items-end mb-3" method="get" action="">
+    <div class="col-12 col-md-4">
+      <label for="city" class="form-label mb-1">City</label>
+      <input type="text" id="city" name="city" value="{{ request.args.get('city', '') }}" class="form-control" placeholder="e.g. Brisbane">
+    </div>
+    <div class="col-12 col-md-4">
+      <label for="genre" class="form-label mb-1">Genre</label>
+      <select id="genre" name="genre" class="form-select">
+        <option value="">All genres</option>
+        {% for g in (genres or []) %}
+          <option value="{{ g.name }}" {% if request.args.get('genre') == g.name %}selected{% endif %}>{{ g.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-3">
+      <label for="date_from" class="form-label mb-1">From</label>
+      <input type="date" id="date_from" name="date_from" value="{{ request.args.get('date_from', '') }}" class="form-control">
+    </div>
+    <div class="col-12 col-md-1 d-grid">
+      <button class="btn btn-secondary" type="submit">Filter</button>
+    </div>
+  </form>
+
+  <h2 class="h4 mb-3">Upcoming Open Decks</h2>
+
+  <div class="row g-3 cards-row">
     {% for e in events %}
-      <div class="col-md-6 col-lg-4">
-        <div class="card h-100">
-          <div class="card-body">
-            <h5 class="card-title">{{ e.title }}</h5>
-            <p class="card-text text-truncate">{{ e.description }}</p>
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="badge
-                {% if e.status == 'Open' %}bg-success{% elif e.status == 'Sold Out' %}bg-danger{% else %}bg-secondary{% endif %}">
-                {{ e.status }}
-              </span>
-              <small class="text-muted">{{ e.date.strftime('%d %b %Y %H:%M') }}</small>
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 hoverable">
+          {% if e.image_url %}
+            <img src="{{ e.image_url }}" class="square-img" alt="{{ e.title }}">
+          {% endif %}
+          <div class="card-body position-relative">
+            <h5 class="card-title mb-1">{{ e.title }}</h5>
+
+            <!-- Meta: date / location -->
+            <div class="small text-muted mb-2">
+              {{ e.date.strftime('%d %b %Y %H:%M') }}
+              {% if e.location %} · {{ e.location }}{% endif %}
             </div>
+
+            <!-- Genres -->
+            {% if e.genres %}
+              <div class="mb-2">
+                {% for g in e.genres %}
+                  <span class="badge rounded-pill bg-secondary me-1">{{ g.name if g.name is defined else g }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <!-- Description preview -->
+            <p class="card-text mb-2">
+              {{ (e.description or '')[:140] }}{% if e.description and e.description|length > 140 %}…{% endif %}
+            </p>
+
+            <!-- Availability / Slots / Tickets -->
+            {% set tickets_booked = (e.tickets_booked() if e.tickets_booked is callable else (e.tickets_booked or 0)) %}
+            {% set capacity = e.capacity if e.capacity is not none else None %}
+            {% set tickets_left = (capacity - tickets_booked) if capacity is not none else None %}
+
+            {% set slots_available = None %}
+            {% if e.performance_slots is defined and e.performance_slots is not none %}
+              {% set slots_available = (e.performance_slots | selectattr('is_available', 'equalto', True) | list | length) %}
+            {% elif e.available_slots is defined %}
+              {% set slots_available = e.available_slots %}
+            {% endif %}
+
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <span class="badge
+                {% if e.status == 'Open' %}bg-success
+                {% elif e.status == 'Sold Out' %}bg-danger
+                {% elif e.status == 'Closed' %}bg-secondary
+                {% elif e.status == 'Cancelled' %}bg-dark
+                {% else %}bg-secondary{% endif %}">
+                {{ e.status or 'Open' }}
+              </span>
+              <small class="text-muted">
+                {% if tickets_left is not none %}
+                  {{ tickets_left if tickets_left > 0 else 0 }} tickets left
+                {% endif %}
+                {% if slots_available is not none %}
+                  {% if tickets_left is not none %} · {% endif %}
+                  {{ slots_available }} slot{{ '' if slots_available == 1 else 's' }} open
+                {% endif %}
+              </small>
+            </div>
+
+            <!-- Primary actions (quick) -->
+            <div class="d-flex gap-2 mt-3">
+              {% if tickets_left is not none and tickets_left > 0 and e.status == 'Open' %}
+                <a class="btn btn-sm btn-primary" href="{{ url_for('routes.event_detail', event_id=e.id) }}#tickets">Book tickets</a>
+              {% endif %}
+              {% if slots_available is not none and slots_available > 0 and e.status == 'Open' %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('routes.event_detail', event_id=e.id) }}#perform">Sign up to perform</a>
+              {% endif %}
+            </div>
+
+            <!-- Comment / attendees quick stats -->
+            <div class="d-flex justify-content-between align-items-center mt-2 text-muted small">
+              <span>
+                {% if e.comment_count is defined %}
+                  💬 {{ e.comment_count }}
+                {% endif %}
+              </span>
+              <span>
+                {% if e.attendee_count is defined %}
+                  🎟️ {{ e.attendee_count }}
+                {% endif %}
+              </span>
+            </div>
+
+            <a class="stretched-link" href="{{ url_for('routes.event_detail', event_id=e.id) }}"></a>
           </div>
         </div>
       </div>
     {% else %}
-      <div class="text-muted">No events yet.</div>
+      <div class="text-muted">
+        No open decks yet.
+        {% if current_user.is_authenticated %}
+          Why not <a href="{{ url_for('routes.create_event') }}">create one</a>?
+        {% endif %}
+      </div>
     {% endfor %}
   </div>
-
 {% endblock %}

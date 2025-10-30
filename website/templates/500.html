@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Server error (500) · EventApp{% endblock %}
+
+{% block content %}
+  <div class="text-center py-5">
+    <h1 class="display-5 fw-bold">Something went wrong</h1>
+    <p class="lead text-muted mt-3">
+      An unexpected error occurred on our side. Please try again shortly.
+    </p>
+    <a class="btn btn-primary mt-3" href="{{ url_for('routes.home') }}">Back to Home</a>
+  </div>
+{% endblock %}

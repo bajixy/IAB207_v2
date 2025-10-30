@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ event.title }} · EventApp{% endblock %}
+
+{% block content %}
+  <h1 class="h3">{{ event.title }}</h1>
+  <p class="text-muted">
+    {{ event.date.strftime('%d %b %Y %H:%M') }} ·
+    <span class="badge {% if event.status == 'Open' %}text-bg-success{% elif event.status == 'Sold Out' %}text-bg-danger{% else %}text-bg-secondary{% endif %}">
+      {{ event.status }}
+    </span>
+  </p>
+  <p>{{ event.description }}</p>
+  <p class="small text-muted">{{ event.tickets_booked() }} / {{ event.capacity }} booked</p>
+
+  <hr>
+  <h2 class="h5">Comments</h2>
+  {% if current_user.is_authenticated %}
+    <form method="POST" class="mb-3">
+      {{ form.hidden_tag() }}
+      {{ form.body(class="form-control mb-2", rows="3", placeholder="Write a comment…") }}
+      {{ form.submit(class="btn btn-primary btn-sm") }}
+    </form>
+  {% else %}
+    <div class="alert alert-info">Log in to comment.</div>
+  {% endif %}
+
+  <div class="list-group mb-3">
+    {% for c in comments %}
+      <div class="list-group-item">
+        <div class="small text-muted">{{ c.created_at.strftime('%d %b %Y %H:%M') }}</div>
+        <div>{{ c.body }}</div>
+      </div>
+    {% else %}
+      <div class="text-muted">No comments yet.</div>
+    {% endfor %}
+  </div>
+
+  <hr>
+  <h2 class="h5">Book tickets</h2>
+  {% if event.status == 'Open' %}
+    <form method="POST" action="{{ url_for('routes.book_event', event_id=event.id) }}" class="row g-2 align-items-center" style="max-width: 360px;">
+      {{ booking_form.hidden_tag() }}
+      <div class="col-auto">
+        {{ booking_form.quantity(class="form-control", min="1") }}
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-success" type="submit">Book</button>
+      </div>
+    </form>
+  {% else %}
+    <div class="alert alert-secondary">Bookings closed ({{ event.status }})</div>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == "create" %}Create Event{% else %}Edit Event{% endif %}{% endblock %}
+
+{% block content %}
+  <h1 class="h4 mb-3">
+    {% if mode == "create" %}Create Event{% else %}Edit Event{% endif %}
+  </h1>
+
+  <form method="post" class="row g-3" style="max-width: 640px;">
+    {{ form.hidden_tag() }}
+
+    <div class="col-12">
+      <label class="form-label">Title</label>
+      {{ form.title(class="form-control", placeholder="e.g. Jazz Night at The Garden") }}
+      {% for e in form.title.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+
+    <div class="col-12">
+      <label class="form-label">Description</label>
+      {{ form.description(class="form-control", rows="4", placeholder="Event details…") }}
+      {% for e in form.description.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Date & time</label>
+      {{ form.date(class="form-control") }}
+      <div class="form-text">Use your browser’s date/time picker.</div>
+      {% for e in form.date.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Capacity</label>
+      {{ form.capacity(class="form-control", min="1") }}
+      {% for e in form.capacity.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+
+    <div class="col-12">
+      <button class="btn btn-primary">{{ form.submit.label.text }}</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('routes.home') }}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}
