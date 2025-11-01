@@ -2,52 +2,181 @@
 {% block title %}{{ event.title }} · EventApp{% endblock %}
 
 {% block content %}
-  <h1 class="h3">{{ event.title }}</h1>
-  <p class="text-muted">
-    {{ event.date.strftime('%d %b %Y %H:%M') }} ·
-    <span class="badge {% if event.status == 'Open' %}text-bg-success{% elif event.status == 'Sold Out' %}text-bg-danger{% else %}text-bg-secondary{% endif %}">
-      {{ event.status }}
-    </span>
-  </p>
-  <p>{{ event.description }}</p>
-  <p class="small text-muted">{{ event.tickets_booked() }} / {{ event.capacity }} booked</p>
+  <div class="event-detail">
 
-  <hr>
-  <h2 class="h5">Comments</h2>
-  {% if current_user.is_authenticated %}
-    <form method="POST" class="mb-3">
-      {{ form.hidden_tag() }}
-      {{ form.body(class="form-control mb-2", rows="3", placeholder="Write a comment…") }}
-      {{ form.submit(class="btn btn-primary btn-sm") }}
-    </form>
-  {% else %}
-    <div class="alert alert-info">Log in to comment.</div>
-  {% endif %}
+    <!-- Title + Status -->
+    <h1 class="h3 fw-bold event-title">{{ event.title }}</h1>
+    <p class="text-muted">
+      {{ event.date.strftime('%d %b %Y %H:%M') }} ·
+      <span class="badge 
+        {% if event.status == 'Open' %}text-bg-success
+        {% elif event.status == 'Sold Out' %}text-bg-danger
+        {% else %}text-bg-secondary{% endif %}">
+        {{ event.status }}
+      </span>
+    </p>
 
-  <div class="list-group mb-3">
-    {% for c in comments %}
-      <div class="list-group-item">
-        <div class="small text-muted">{{ c.created_at.strftime('%d %b %Y %H:%M') }}</div>
-        <div>{{ c.body }}</div>
+    <!-- Image (left) + Details (right) -->
+    <div class="row align-items-start g-4 mb-4">
+      <!-- Image -->
+      <div class="col-md-6">
+        {% set img_rel = (event.image_path or '') %}
+        {% set img_rel = img_rel.replace('static/', '').lstrip('/') %}
+        {% if img_rel %}
+          <img src="{{ url_for('static', filename=img_rel) }}"
+               alt="{{ event.title }} image"
+               class="img-fluid rounded shadow-sm w-100"
+               style="max-height: 450px; object-fit: cover;">
+        {% else %}
+          <div class="bg-light border rounded d-flex align-items-center justify-content-center"
+               style="height: 450px;">
+            <span class="text-muted">No image available</span>
+          </div>
+        {% endif %}
       </div>
+
+      <!-- Details + Booking (booking centered at bottom of this column) -->
+      <div class="col-md-6">
+        <p><strong>Description:</strong> {{ event.description }}</p>
+        <p><strong>Host:</strong> {{ event.host or 'Unknown' }}</p>
+        <p><strong>Location:</strong> {{ event.location or 'TBA' }}</p>
+        <p><strong>Capacity:</strong> {{ event.capacity }}</p>
+        <p class="small text-muted">{{ event.tickets_booked() }} / {{ event.capacity }} booked</p>
+      </div>
+
+        <!-- Booking section centered -->
+        <hr>
+        <h2 class="h5 mb-3 text-center">Book Tickets</h2>
+
+        {% set remaining = (event.capacity - event.tickets_booked()) %}
+        <div class="row justify-content-center">
+          <div class="col-lg-10 col-xl-8">
+            <div class="card shadow-sm booking-card">
+              <div class="card-body">
+                {% if remaining > 0 and event.status == 'Open' %}
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="fw-semibold">Availability</div>
+                    <div class="badge text-bg-success">{{ remaining }} left</div>
+                  </div>
+                  <p class="text-muted small mb-3">
+                    Capacity: {{ event.capacity }} &middot; Booked: {{ event.tickets_booked() }}
+                  </p>
+
+                  <form method="POST" action="{{ url_for('routes.book_event', event_id=event.id) }}" id="booking-form">
+                    {{ booking_form.hidden_tag() }}
+
+                    <!-- Name -->
+                    <div class="mb-3">
+                      {{ booking_form.name.label(class="form-label fw-semibold") }}
+                      {{ booking_form.name(class="form-control", placeholder="Enter your full name") }}
+                      {% if booking_form.name.errors %}
+                        <div class="text-danger small">{{ booking_form.name.errors[0] }}</div>
+                      {% endif %}
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-3">
+                      {{ booking_form.email.label(class="form-label fw-semibold") }}
+                      {{ booking_form.email(class="form-control", placeholder="you@example.com") }}
+                      {% if booking_form.email.errors %}
+                        <div class="text-danger small">{{ booking_form.email.errors[0] }}</div>
+                      {% endif %}
+                    </div>
+
+                    <!-- Quantity -->
+                    <label class="form-label fw-semibold">Quantity</label>
+                    <div class="input-group mb-3">
+                      <button class="btn btn-outline-secondary" type="button" id="qty-minus" aria-label="Decrease quantity">&minus;</button>
+                      {{ booking_form.quantity(class="form-control text-center", min="1", max=remaining, value=1) }}
+                      <button class="btn btn-outline-secondary" type="button" id="qty-plus" aria-label="Increase quantity">+</button>
+                    </div>
+
+                    <div class="d-grid d-sm-flex gap-2">
+                      {{ booking_form.submit(class="btn btn-success") }}
+                      <a href="{{ url_for('routes.event_detail', event_id=event.id) }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+
+                    <div class="form-text mt-2">
+                      We’ll email your booking confirmation.
+                    </div>
+                  </form>
+                {% else %}
+                  <div class="alert alert-secondary mb-0">
+                    Bookings closed ({{ event.status }}). {% if remaining <= 0 %}No seats remaining.{% endif %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <hr>
+    <h2 class="h5">Comments</h2>
+    {% if current_user.is_authenticated %}
+      <form method="POST" class="mb-3">
+        {{ form.hidden_tag() }}
+        {{ form.body(class="form-control mb-2", rows="3", placeholder="Write a comment…") }}
+        {{ form.submit(class="btn btn-primary btn-sm") }}
+      </form>
     {% else %}
-      <div class="text-muted">No comments yet.</div>
-    {% endfor %}
-  </div>
+      <div class="alert alert-info">Log in to comment.</div>
+    {% endif %}
 
-  <hr>
-  <h2 class="h5">Book tickets</h2>
-  {% if event.status == 'Open' %}
-    <form method="POST" action="{{ url_for('routes.book_event', event_id=event.id) }}" class="row g-2 align-items-center" style="max-width: 360px;">
-      {{ booking_form.hidden_tag() }}
-      <div class="col-auto">
-        {{ booking_form.quantity(class="form-control", min="1") }}
-      </div>
-      <div class="col-auto">
-        <button class="btn btn-success" type="submit">Book</button>
-      </div>
-    </form>
-  {% else %}
-    <div class="alert alert-secondary">Bookings closed ({{ event.status }})</div>
-  {% endif %}
+    <div class="list-group mb-3">
+      {% for c in comments %}
+        <div class="list-group-item">
+          <div class="small text-muted">{{ c.created_at.strftime('%d %b %Y %H:%M') }}</div>
+          <div>{{ c.body }}</div>
+        </div>
+      {% else %}
+        <div class="text-muted">No comments yet.</div>
+      {% endfor %}
+    </div>
+
+  </div>
+  
+  {% if current_user.is_authenticated and current_user.id == event.owner_id %}
+  <form method="POST" 
+        action="{{ url_for('routes.delete_event', event_id=event.id) }}" 
+        onsubmit="return confirm('Are you sure you want to delete this event?');">
+    <button type="submit" class="btn btn-danger btn-sm mt-3">
+      <i class="bi bi-trash"></i> Delete Event
+    </button>
+  </form>
+{% endif %}
+  
+  <script>
+    (function () {
+      const qtyInput = document.querySelector('#booking-form input[name="{{ booking_form.quantity.name }}"]');
+      const minusBtn = document.getElementById('qty-minus');
+      const plusBtn  = document.getElementById('qty-plus');
+      const submit   = document.querySelector('#booking-form button[type="submit"]');
+
+      if (!qtyInput) return;
+      const min = parseInt(qtyInput.getAttribute('min') || '1', 10);
+      const max = parseInt(qtyInput.getAttribute('max') || '1', 10);
+
+      function clamp(val) {
+        val = parseInt(val || min, 10);
+        if (isNaN(val)) val = min;
+        return Math.min(Math.max(val, min), max);
+      }
+      .event-title {
+        font-weight: 800;
+        color: #1a1a1a;
+        text-transform: uppercase;
+      }
+
+      minusBtn?.addEventListener('click', () => { qtyInput.value = clamp((parseInt(qtyInput.value, 10) || min) - 1); });
+      plusBtn?.addEventListener('click',  () => { qtyInput.value = clamp((parseInt(qtyInput.value, 10) || min) + 1); });
+      qtyInput.addEventListener('input',  () => { qtyInput.value = clamp(qtyInput.value); });
+
+      document.getElementById('booking-form')?.addEventListener('submit', () => {
+        submit.setAttribute('disabled', 'disabled');
+      });
+    })();
+  </script>
 {% endblock %}

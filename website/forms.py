@@ -1,5 +1,7 @@
 # website/forms.py
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed
+
 from wtforms import (
     StringField,
     PasswordField,
@@ -35,13 +37,10 @@ class LoginForm(FlaskForm):
 
 # --- Event-related forms ---
 class BookingForm(FlaskForm):
-    quantity = IntegerField(
-        "Quantity",
-        validators=[DataRequired(), NumberRange(min=1, max=100)]
-    )
-    submit = SubmitField("Book tickets")
-
-
+    name = StringField("Your Name", validators=[DataRequired(), Length(min=2, max=100)])
+    email = StringField("Email", validators=[DataRequired(), Email()])
+    quantity = IntegerField("Quantity", validators=[DataRequired(), NumberRange(min=1)])
+    submit = SubmitField("Book Now")
 class CommentForm(FlaskForm):
     body = TextAreaField(
         "Comment",
@@ -49,11 +48,9 @@ class CommentForm(FlaskForm):
     )
     submit = SubmitField("Post comment")
 
-
 class EventForm(FlaskForm):
     title = StringField("Title", validators=[DataRequired(), Length(max=120)])
     description = TextAreaField("Description", validators=[DataRequired()])
-    # HTML datetime-local uses "YYYY-MM-DDTHH:MM"
     date = DateTimeLocalField(
         "Date & time",
         format="%Y-%m-%dT%H:%M",
@@ -63,4 +60,16 @@ class EventForm(FlaskForm):
         "Capacity",
         validators=[DataRequired(), NumberRange(min=1, max=100000)]
     )
+
+    # ✅ New fields
+    genre = StringField("Genre", validators=[DataRequired(), Length(max=50)])
+    host = StringField("Host", validators=[DataRequired(), Length(max=120)])
+    location = StringField("Location", validators=[DataRequired(), Length(max=255)])
+
+    image = FileField(
+        "Event image",
+        validators=[FileAllowed(["jpg", "jpeg", "png", "gif"], "Images only!")],
+    )
+
     submit = SubmitField("Create event")
+

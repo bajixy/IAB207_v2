@@ -1,13 +1,13 @@
-# website/__init__.py
 import os
 from pathlib import Path
 from flask import Flask, render_template, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
-from werkzeug.routing import BuildError            # ✅ import this
+from werkzeug.routing import BuildError
 import click
 from flask.cli import with_appcontext
+from sqlalchemy import inspect, text
 
 # Optional: load variables from .env if present
 try:
@@ -45,15 +45,14 @@ def create_app():
     app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "dev-change-me")
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
-    packaged_db = Path(app.root_path) / "_data" / "app.db"
-    default_sqlite = (
-        f"sqlite:///{packaged_db.as_posix()}"
-        if packaged_db.exists()
-        else "sqlite:///instance/app.db"
-    )
-    uri = os.getenv("DATABASE_URL", default_sqlite)
-    app.config["SQLALCHEMY_DATABASE_URI"] = _normalize_sqlite_uri(app, uri)
+    db_path = Path(app.instance_path) / "app.db"
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path.as_posix()}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    uploads_dir = Path(app.root_path) / "static" / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    app.config["UPLOAD_FOLDER"] = uploads_dir.as_posix()
+    app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5MB max upload size
 
     # ----- Init extensions -----
     db.init_app(app)
@@ -63,12 +62,33 @@ def create_app():
     login_manager.login_view = "routes.login"
     login_manager.login_message_category = "info"
 
-    # Models
+    # ----- Models -----
     from .models import User  # noqa: F401
 
     @login_manager.user_loader
     def load_user(user_id: str):
         return User.query.get(int(user_id))
+
+    # --- Ensure new User columns exist (dev convenience) ---
+    with app.app_context():
+        try:
+            inspector = inspect(db.engine)
+            if "user" in inspector.get_table_names():
+                cols = {c["name"] for c in inspector.get_columns("user")}
+                stmts = []
+                if "role" not in cols:
+                    stmts.append(text("ALTER TABLE user ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
+                if "bio" not in cols:
+                    stmts.append(text("ALTER TABLE user ADD COLUMN bio TEXT DEFAULT ''"))
+                if "profile_pic" not in cols:
+                    stmts.append(text("ALTER TABLE user ADD COLUMN profile_pic VARCHAR(255)"))
+                for s in stmts:
+                    db.session.execute(s)
+                if stmts:
+                    db.session.commit()
+                    print(f"✅ Added missing columns: {[s.text for s in stmts]}")
+        except Exception as e:
+            print("⚠️ Skipped column check:", e)
 
     # ----- Blueprints -----
     from .routes import routes
@@ -91,6 +111,7 @@ def create_app():
                 return url_for(endpoint, **values)
             except BuildError:
                 return None
+
         import datetime as _dt
         return {
             "safe_url_for": safe_url_for,
@@ -101,6 +122,7 @@ def create_app():
     @app.cli.command("init-db")
     @with_appcontext
     def init_db():
+        from . import models
         db.create_all()
         click.echo(f"Database initialized ✅ -> {app.config['SQLALCHEMY_DATABASE_URI']}")
 
@@ -155,5 +177,5 @@ def create_app():
         db.session.commit()
         click.echo("Seed data inserted 🌱")
 
-    # ✅ IMPORTANT: return the app from inside create_app
+    # ✅ Return app
     return app

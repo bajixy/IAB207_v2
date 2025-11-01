@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}My Profile · Open Decks{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 700px;">
+  <h1 class="h4 mb-3 text-center">My Profile</h1>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+
+        
+        <div class="d-flex align-items-center gap-3 mb-3">
+          {% if current_user.profile_pic %}
+            <img src="{{ url_for('static', filename=current_user.profile_pic) }}"
+                 alt="{{ current_user.name }}'s photo"
+                 class="rounded-circle"
+                 style="width: 96px; height: 96px; object-fit: cover;">
+          {% else %}
+            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center text-muted"
+                 style="width: 96px; height: 96px;">
+              {{ (current_user.name[:1] or 'U')|upper }}
+            </div>
+          {% endif %}
+          <div>
+            <label class="form-label mb-1">Profile picture</label>
+            <input type="file" name="profile_pic" accept=".png,.jpg,.jpeg,.webp" class="form-control form-control-sm" />
+            <div class="form-text">PNG/JPG/WebP • up to ~5MB</div>
+          </div>
+        </div>
+
+        <!-- Name / Email -->
+        <div class="mb-3">
+          <label class="form-label">Name</label>
+          <input type="text" name="name" class="form-control" value="{{ current_user.name }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" value="{{ current_user.email }}" disabled>
+          <div class="form-text">Email can’t be changed here.</div>
+        </div>
+
+        <!-- Role radios -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Badge</label>
+          <div class="btn-group d-flex" role="group">
+            <input type="radio" class="btn-check" name="role" id="role-user" value="user"
+                   {% if current_user.role == "user" %}checked{% endif %}>
+            <label class="btn btn-outline-secondary" for="role-user">🎟️ User</label>
+
+            <input type="radio" class="btn-check" name="role" id="role-artist" value="artist"
+                   {% if current_user.role == "artist" %}checked{% endif %}>
+            <label class="btn btn-outline-success" for="role-artist">🎵 Artist</label>
+
+            <input type="radio" class="btn-check" name="role" id="role-host" value="host"
+                   {% if current_user.role == "host" %}checked{% endif %}>
+            <label class="btn btn-outline-primary" for="role-host">🏠 Host</label>
+          </div>
+        </div>
+
+        
+        <div class="mb-3">
+          <label class="form-label">Bio</label>
+          <textarea name="bio" class="form-control" rows="4"
+            placeholder="Tell people about yourself…">{{ current_user.bio or "" }}</textarea>
+        </div>
+
+        <div class="d-grid">
+          <button class="btn btn-dark">Save changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="text-center text-muted mt-3">
+    Current badge: <span class="fw-semibold text-capitalize">{{ current_user.role or 'user' }}</span>
+  </div>
+</div>
+{% endblock %}
