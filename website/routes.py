@@ -177,22 +177,41 @@ def book_event(event_id):
     return redirect(url_for('routes.event_detail', event_id=event.id))
 
 
-#Register 
+# Register
 @routes.route('/register', methods=['GET', 'POST'])
 def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('routes.dashboard'))
+
     form = RegisterForm()
     if form.validate_on_submit():
-        existing_user = User.query.filter_by(email=form.email.data).first()
+        # case-insensitive email check
+        existing_user = User.query.filter(db.func.lower(User.email) == form.email.data.strip().lower()).first()
         if existing_user:
             flash('Email already registered.', 'danger')
             return redirect(url_for('routes.register'))
 
         hashed_pw = generate_password_hash(form.password.data, method='pbkdf2:sha256')
-        new_user = User(email=form.email.data, name=form.name.data, password=hashed_pw)
+
+        # Keep legacy `name` populated if your app still uses it elsewhere
+        full_name = f"{form.first_name.data.strip()} {form.last_name.data.strip()}".strip()
+
+        new_user = User(
+            email=form.email.data.strip().lower(),
+            password=hashed_pw,
+            first_name=form.first_name.data.strip(),
+            last_name=form.last_name.data.strip(),
+            street_address=form.street_address.data.strip(),
+            phone_number=form.phone_number.data.strip(),
+            # legacy support
+            #name=full_name  # remove if you've fully switched to first/last_name everywhere
+        )
+
         db.session.add(new_user)
         db.session.commit()
         flash('Registration successful! Please log in.', 'success')
         return redirect(url_for('routes.login'))
+
     return render_template('register.html', form=form)
 
 

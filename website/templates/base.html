@@ -30,7 +30,7 @@
           <li class="nav-item"><a class="nav-link" href="{{ url_for('routes.create_event') }}">Create Open Deck</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('routes.booking_history') }}">My Tickets</a></li>
 
-          {# Safe version that won’t crash even if the route doesn’t exist #}
+          
           {% set myperf = safe_url_for('routes.my_performances') %}
           {% if myperf %}
             <li class="nav-item"><a class="nav-link" href="{{ myperf }}">My Performances</a></li>

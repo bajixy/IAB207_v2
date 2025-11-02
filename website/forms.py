@@ -18,15 +18,16 @@ from wtforms.validators import (
     NumberRange,
 )
 
-# --- Auth forms ---
+#Auth forms
 class RegisterForm(FlaskForm):
-    email = StringField("Email", validators=[DataRequired(), Email()])
-    name = StringField("Name", validators=[DataRequired(), Length(min=2, max=80)])
+    first_name = StringField("First Name", validators=[DataRequired(), Length(max=100)])
+    last_name = StringField("Last Name", validators=[DataRequired(), Length(max=100)])
+    email = StringField("Email", validators=[DataRequired(), Email(), Length(max=255)])
+    street_address = StringField("Street Address", validators=[DataRequired(), Length(max=255)])
+    phone_number = StringField("Phone Number", validators=[DataRequired(), Length(max=20)])
     password = PasswordField("Password", validators=[DataRequired(), Length(min=6)])
-    confirm_password = PasswordField(
-        "Confirm Password", validators=[DataRequired(), EqualTo("password")]
-    )
-    submit = SubmitField("Register")
+    confirm_password = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password")])
+    submit = SubmitField("Sign Up")
 
 
 class LoginForm(FlaskForm):
@@ -35,16 +36,29 @@ class LoginForm(FlaskForm):
     submit = SubmitField("Login")
 
 
-# --- Event-related forms ---
 class BookingForm(FlaskForm):
-    name = StringField("Your Name", validators=[DataRequired(), Length(min=2, max=100)])
-    email = StringField("Email", validators=[DataRequired(), Email()])
-    quantity = IntegerField("Quantity", validators=[DataRequired(), NumberRange(min=1)])
+    name = StringField(
+        "Your Name",
+        validators=[DataRequired(), Length(min=2, max=100)],
+        filters=[lambda x: x.strip() if x else x]  # trims spaces
+    )
+    email = StringField(
+        "Email",
+        validators=[DataRequired(), Email(), Length(max=255)],
+        filters=[lambda x: x.strip().lower() if x else x]  # normalize email
+    )
+    quantity = IntegerField(
+        "Quantity",
+        validators=[DataRequired(), NumberRange(min=1)],
+    )
     submit = SubmitField("Book Now")
+
+
 class CommentForm(FlaskForm):
     body = TextAreaField(
         "Comment",
-        validators=[DataRequired(), Length(max=500)]
+        validators=[DataRequired(), Length(max=500)],
+        filters=[lambda x: x.strip() if x else x]  # trims whitespace
     )
     submit = SubmitField("Post comment")
 
@@ -61,7 +75,7 @@ class EventForm(FlaskForm):
         validators=[DataRequired(), NumberRange(min=1, max=100000)]
     )
 
-    # ✅ New fields
+    # updated fields now adds genre host location
     genre = StringField("Genre", validators=[DataRequired(), Length(max=50)])
     host = StringField("Host", validators=[DataRequired(), Length(max=120)])
     location = StringField("Location", validators=[DataRequired(), Length(max=255)])

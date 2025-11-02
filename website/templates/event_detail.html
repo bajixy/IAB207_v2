@@ -115,27 +115,31 @@
 
     <hr>
     <h2 class="h5">Comments</h2>
-    {% if current_user.is_authenticated %}
-      <form method="POST" class="mb-3">
-        {{ form.hidden_tag() }}
-        {{ form.body(class="form-control mb-2", rows="3", placeholder="Write a comment…") }}
-        {{ form.submit(class="btn btn-primary btn-sm") }}
-      </form>
-    {% else %}
-      <div class="alert alert-info">Log in to comment.</div>
-    {% endif %}
+{% if current_user.is_authenticated %}
+  <form method="POST" class="mb-3">
+    {{ form.hidden_tag() }}
+    {{ form.body(class="form-control mb-2", rows="3", placeholder="Write a comment…") }}
+    {{ form.submit(class="btn btn-primary btn-sm") }}
+  </form>
+{% else %}
+  <div class="alert alert-info">Log in to comment.</div>
+{% endif %}
 
-    <div class="list-group mb-3">
-      {% for c in comments %}
-        <div class="list-group-item">
-          <div class="small text-muted">{{ c.created_at.strftime('%d %b %Y %H:%M') }}</div>
-          <div>{{ c.body }}</div>
-        </div>
-      {% else %}
-        <div class="text-muted">No comments yet.</div>
-      {% endfor %}
+<div class="list-group mb-3">
+  {% for c in comments %}
+    <div class="list-group-item">
+      <div class="d-flex justify-content-between align-items-center small text-muted mb-1">
+        <span><strong>{{ c.user.name if c.user else 'Anonymous' }}</strong></span>
+        <span>{{ c.created_at.strftime('%d %b %Y, %I:%M %p') if c.created_at else '' }}</span>
+      </div>
+      <div>{{ c.body }}</div>
     </div>
+  {% else %}
+    <div class="text-muted">No comments yet.</div>
+  {% endfor %}
+</div>
 
+ 
   </div>
   
   {% if current_user.is_authenticated and current_user.id == event.owner_id %}
@@ -147,36 +151,15 @@
     </button>
   </form>
 {% endif %}
-  
-  <script>
-    (function () {
-      const qtyInput = document.querySelector('#booking-form input[name="{{ booking_form.quantity.name }}"]');
-      const minusBtn = document.getElementById('qty-minus');
-      const plusBtn  = document.getElementById('qty-plus');
-      const submit   = document.querySelector('#booking-form button[type="submit"]');
+{{ booking_form.quantity(
+  class_="form-control text-center",
+  type="number",
+  min=1,
+  max=remaining,
+  value=1,
+  step=1,
+  **{'inputmode': 'numeric', 'aria-describedby': 'qtyHelp'}
+) }}
 
-      if (!qtyInput) return;
-      const min = parseInt(qtyInput.getAttribute('min') || '1', 10);
-      const max = parseInt(qtyInput.getAttribute('max') || '1', 10);
 
-      function clamp(val) {
-        val = parseInt(val || min, 10);
-        if (isNaN(val)) val = min;
-        return Math.min(Math.max(val, min), max);
-      }
-      .event-title {
-        font-weight: 800;
-        color: #1a1a1a;
-        text-transform: uppercase;
-      }
-
-      minusBtn?.addEventListener('click', () => { qtyInput.value = clamp((parseInt(qtyInput.value, 10) || min) - 1); });
-      plusBtn?.addEventListener('click',  () => { qtyInput.value = clamp((parseInt(qtyInput.value, 10) || min) + 1); });
-      qtyInput.addEventListener('input',  () => { qtyInput.value = clamp(qtyInput.value); });
-
-      document.getElementById('booking-form')?.addEventListener('submit', () => {
-        submit.setAttribute('disabled', 'disabled');
-      });
-    })();
-  </script>
 {% endblock %}

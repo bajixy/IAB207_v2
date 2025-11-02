@@ -1,54 +1,83 @@
 {% extends "base.html" %}
-{% block title %}Register · EventApp{% endblock %}
+{% block title %}Create an account · Open Decks{% endblock %}
 
 {% block content %}
-  <div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-      <h1 class="h3 mb-3">Create your account</h1>
-      <form method="POST" novalidate>
-        {{ form.hidden_tag() }}
+<div class="row g-4 align-items-stretch">
+  <!-- Left: Register form -->
+  <div class="col-12 col-md-6">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-3">Create an account</h1>
+        <form method="POST" novalidate>
+          {{ form.hidden_tag() }}
 
-        <div class="mb-3">
-          <label class="form-label">{{ form.email.label }}</label>
-          {{ form.email(class="form-control", placeholder="you@example.com") }}
-          {% for err in form.email.errors %}
-            <div class="text-danger small">{{ err }}</div>
-          {% endfor %}
-        </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              {{ form.first_name.label(class="form-label") }}
+              {{ form.first_name(class="form-control", placeholder="Jane") }}
+              {% for e in form.first_name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6 mb-3">
+              {{ form.last_name.label(class="form-label") }}
+              {{ form.last_name(class="form-control", placeholder="Doe") }}
+              {% for e in form.last_name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
 
-        <div class="mb-3">
-          <label class="form-label">{{ form.name.label }}</label>
-          {{ form.name(class="form-control", placeholder="Your name") }}
-          {% for err in form.name.errors %}
-            <div class="text-danger small">{{ err }}</div>
-          {% endfor %}
-        </div>
+          <div class="mb-3">
+            {{ form.email.label(class="form-label") }}
+            {{ form.email(class="form-control", placeholder="you@example.com") }}
+            {% for e in form.email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
 
-        <div class="mb-3">
-          <label class="form-label">{{ form.password.label }}</label>
-          {{ form.password(class="form-control", placeholder="Password (min 6 chars)") }}
-          {% for err in form.password.errors %}
-            <div class="text-danger small">{{ err }}</div>
-          {% endfor %}
-        </div>
+          <div class="mb-3">
+            {{ form.street_address.label(class="form-label") }}
+            {{ form.street_address(class="form-control", placeholder="123 Example St, Suburb") }}
+            {% for e in form.street_address.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
 
-        <div class="mb-3">
-          <label class="form-label">{{ form.confirm_password.label }}</label>
-          {{ form.confirm_password(class="form-control", placeholder="Confirm password") }}
-          {% for err in form.confirm_password.errors %}
-            <div class="text-danger small">{{ err }}</div>
-          {% endfor %}
-        </div>
+          <div class="mb-3">
+            {{ form.phone_number.label(class="form-label") }}
+            {{ form.phone_number(class="form-control", placeholder="+61 4xx xxx xxx") }}
+            {% for e in form.phone_number.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
 
-        <div class="d-grid">
-          {{ form.submit(class="btn btn-primary btn-lg") }}
-        </div>
-      </form>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              {{ form.password.label(class="form-label") }}
+              {{ form.password(class="form-control") }}
+              {% for e in form.password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6 mb-3">
+              {{ form.confirm_password.label(class="form-label") }}
+              {{ form.confirm_password(class="form-control") }}
+              {% for e in form.confirm_password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
 
-      <p class="mt-3 mb-0">
-        Already have an account?
-        <a href="{{ url_for('routes.login') }}">Log in</a>
-      </p>
+          <div class="d-grid">
+            {{ form.submit(class="btn btn-primary btn-lg") }}
+          </div>
+        </form>
+      </div>
     </div>
   </div>
+
+  <!-- Right: Image -->
+  <div class="col-12 col-md-6">
+    <div class="card h-100 border-0">
+      <div class="ratio ratio-4x3 rounded-3 overflow-hidden shadow-sm">
+        <img
+          src="{{ url_for('static', filename='img/opendeck.webp') }}"
+          alt="Open Decks community – inclusive gigs for new artists"
+          class="w-100 h-100"
+          style="object-fit: cover;"
+        >
+      </div>
+      <div class="mt-3 text-muted small">
+        Open Decks is inclusive by design — new and emerging artists welcome.
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

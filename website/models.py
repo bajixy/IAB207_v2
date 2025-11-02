@@ -3,27 +3,33 @@ from flask_login import UserMixin
 from website import db
 from sqlalchemy import CheckConstraint, Index, func  
 
-#user
-class User(db.Model, UserMixin):
-    __tablename__ = "user"
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    name = db.Column(db.String(150), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-
-    
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
+    street_address = db.Column(db.String(255))
+    phone_number = db.Column(db.String(20))
     role = db.Column(db.String(20), default="user")  # "user", "artist", "host"
     bio = db.Column(db.Text, default="")             # short description or artist bio
-    profile_pic = db.Column(db.String(255), nullable=True)  
+    profile_pic = db.Column(db.String(255), nullable=True)
 
     # Relationships
     bookings = db.relationship('Booking', backref='user', lazy=True)
     comments = db.relationship('Comment', backref='user', lazy=True)
     events = db.relationship('Event', backref='owner', lazy=True)
 
+    # Computed property for backward compatibility
+    @property
+    def name(self):
+        """Return the user's full name or email if missing."""
+        full_name = f"{self.first_name or ''} {self.last_name or ''}".strip()
+        return full_name if full_name else self.email
+
     def __repr__(self):
         return f"<User {self.name} ({self.role})>"
-#event! dont edit
+
 class Event(db.Model):
     __tablename__ = "event"
     id = db.Column(db.Integer, primary_key=True)
